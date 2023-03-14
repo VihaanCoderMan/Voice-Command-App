@@ -1,58 +1,36 @@
-x = 0;
-y = 0;
-draw_circle = "";
-draw_rect = "";
-
-var SpeechRecognition = window.webkitSpeechRecognition;
-
-var recognition = new SpeechRecognition();
-
-function start()
-{
-    document.getElementById("status").innerHTML = "system is listening please speak";
-    recognition.start();
-}
-
-recognition.onresult = function(event) {
-    
-    console.log(event);
-
-    var content = event.results[0][0].transcript;
-    
-    document.getElementById("status").innerHTML = "The Speech has been recognized as: " + content;
-    if(content =="circle")
-    {
-        x = Math.floor(Math.random() * 900);
-        y = Math.floor(Math.random () * 600);
-        document.getElementById("status").innerHTML = "Started drawing circle ";
-        draw_circle = "set";
-    }
-    if(content == "rectangle")
-    {
-        x = Math.floor(Math.random() * 900);
-        y = Math.floor(Math.random() * 600);
-        document.getElementById("status").innerHTML = "Started drawing rectangle";
-        draw_rect = "set";
-    }
-}
-
 function setup() {
-    canvas = createCanvas(900, 600);
+  canvas = createCanvas(300, 300);
+  canvas.center();
+  video = createCapture(VIDEO);
+  video.hide();
+  classifier = ml5.imageClassifier('MobileNet',modelLoaded);
+}
+
+function modelLoaded() {
+  console.log('Model Loaded!');
 }
 
 function draw() {
-    if(draw_circle == "set")
-    {
-        radius = Math.floor(Math.random() * 100);
-        circle(x,y,radius);
-        document.getElementById("status").innerHTML = "Circle is drawn. ";
-        draw_circle = "";
-    }
+  image(video, 0, 0, 300, 300);
+  classifier.classify(video, gotResult);
+}
+var previous_result = '';
 
-    if(draw_rect == "set")
-    {
-        rect(x,y,70,50);
-        document.getElementById("status").innerHTML = "Rectangle is drawn. ";
-        draw_rect = "";
+function gotResult(error, results) {
+  if (error) {
+    console.error(error);
+  } else {
+    if((results[0].confidence > 0.5) && (previous_result != results[0].label)){
+      console.log(results);
+      previous_result = results[0].label;
+      var synth = window.speechSynthesis;
+      speak_data = 'Object detected is - ' + results[0].label;
+      var utterThis = new SpeechSynthesisUtterance(speak_data);
+      synth.speak(utterThis);
+
+      document.getElementById("result_object_name").innerHTML = results[0].label;
+      document.getElementById("result_object_accuracy").innerHTML = results[0].confidence.toFixed(3);
     }
-} 
+  }
+}
+
